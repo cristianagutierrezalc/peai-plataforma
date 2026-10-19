@@ -1,18 +1,12 @@
-# render.yaml - Blueprint para deploy automático en Render
-# Uso: En Render Dashboard -> New + -> Blueprint -> Conecta tu repo GitHub
-# Render creará: PostgreSQL, Backend (Web Service), Frontend (Static Site)
+# render.yaml - Blueprint del backend de PEA-i Plataforma.
+#
+# Solo declara el backend. El frontend se despliega en Vercel (Opcion A) y
+# la base de datos es Supabase, porque el Postgres gratis de Render se elimina
+# a los 30 dias y perderias todos los datos.
+#
+# En Render: New + -> Blueprint -> conecta tu repo GitHub.
 
 services:
-  # 1. BASE DE DATOS POSTGRESQL
-  #    AVISO: el plan free de Render se elimina a los 30 dias.
-  #    Para datos permanentes usa Supabase y comenta este bloque,
-  #    dejando DATABASE_URL apuntando a la connection string de Supabase.
-  - type: pserv
-    name: peai-db
-    plan: free
-    ipAllowList: []
-
-  # 2. BACKEND - FastAPI Web Service
   - type: web
     name: peai-backend
     runtime: python3
@@ -24,20 +18,25 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.12"
+
+      # Obligatorias en produccion: la app se niega a arrancar sin ellas.
       - key: ENVIRONMENT
         value: production
+      - key: DEBUG
+        value: "false"
+
+      # DATABASE_URL va en sync: false porque incluye la clave de Supabase.
+      # Pega aqui la cadena del POOLER (no la directa, que solo tiene IPv6):
+      #   postgresql://postgres.<TU_PROYECTO>:<PASSWORD>@aws-0-us-east-1.pooler.supabase.com:6543/postgres
       - key: DATABASE_URL
-        fromDatabase:
-          name: peai-db
-          property: connectionString
+        sync: false
+
+      # SECRET_KEY la genera Render. Nunca la pongas en el repo.
       - key: SECRET_KEY
         generateValue: true
-      - key: ALGORITHM
-        value: HS256
-      - key: ACCESS_TOKEN_EXPIRE_MINUTES
-        value: "1440"
-      # Endpoint de registro cerrado: solo un admin autenticado crea usuarios.
-      # El primero se crea con el seeder a partir de estas variables.
+
+      # Credenciales del primer administrador. Sin ellas no hay forma de
+      # crear usuarios, porque /api/auth/register esta cerrado.
       - key: ADMIN_USERNAME
         sync: false
       - key: ADMIN_PASSWORD
@@ -46,40 +45,15 @@ services:
         value: Administrador
       - key: ADMIN_ROL
         value: admin
-      # Ajusta al dominio real del frontend. Vite incrusta VITE_API_URL
-      # en el bundle, asi que cambiarlo exige redesplegar el frontend.
+
+      # Ajusta al dominio real del frontend en Vercel.
       - key: CORS_ORIGINS
-        value: '["https://peai-frontend.onrender.com", "http://localhost:3000"]'
-      - key: DEBUG
-        value: "false"
+        sync: false
+
+      # Pool de conexiones hacia Supabase.
       - key: DB_POOL_SIZE
         value: "5"
       - key: DB_MAX_OVERFLOW
         value: "10"
       - key: DB_POOL_RECYCLE
         value: "300"
-
-  # 3. FRONTEND - Static Site (React + Vite)
-  - type: static
-    name: peai-frontend
-    rootDir: frontend
-    buildCommand: npm ci && npm run build
-    staticPublishPath: dist
-    plan: free
-    headers:
-      - path: /*
-        name: X-Frame-Options
-        value: DENY
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-      - path: /*
-        name: Referrer-Policy
-        value: strict-origin-when-cross-origin
-    envVars:
-      - key: VITE_API_URL
-        value: https://peai-backend.onrender.com
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
