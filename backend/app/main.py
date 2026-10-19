@@ -1,11 +1,16 @@
 """Aplicacion FastAPI principal de PEA-i Plataforma."""
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from .config import get_settings
-from .database import init_db
+from .database import init_db, SessionLocal
+from .seed import seed_admin
 from .routers import grupos, investigadores, productos, estadisticas, auth
 
 settings = get_settings()
+logger = logging.getLogger("peai")
 
 app = FastAPI(
     title=settings.app_name,
@@ -27,7 +32,18 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup():
+    # Revisa SECRET_KEY, DEBUG y credenciales antes de aceptar trafico.
+    settings.validar_secretos()
+
     init_db()
+
+    db = SessionLocal()
+    try:
+        usuario = seed_admin(db)
+        if usuario is not None:
+            logger.warning("Administrador inicial creado: %s (rol=%s)", usuario.username, usuario.rol.value)
+    finally:
+        db.close()
 
 
 app.include_router(auth.router)
