@@ -560,7 +560,9 @@ def _sin_espacios(texto: str) -> str:
 
 
 def _es_seccion_productos(seccion: str) -> bool:
-    return any(p in seccion for p in PALABRAS_PRODUCTO)
+    # Las palabras clave tienen espacios, pero la seccion ya fue normalizada
+    # (sin espacios). Normalizamos tambien las palabras clave para comparar.
+    return any(_normalizar(p) in seccion for p in PALABRAS_PRODUCTO)
 
 
 def _tipo_por_seccion(seccion: str) -> str:
