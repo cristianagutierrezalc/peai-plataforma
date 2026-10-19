@@ -133,13 +133,26 @@ def _ids_de_investigadores(db: Session) -> dict[str, models.Investigador]:
 
     Se construye una sola vez por importacion en vez de consultar por cada
     autor de cada producto, que en los reportes de SCIENTI son miles de
-    consultas. El indice tiene las dos claves porque un autor puede venir
-    como "INV001" (CSV) o como "JOHN JAIRO PATINO VANEGAS" (scraping).
+    consultas. El indice tiene varias claves porque un autor puede venir
+    como "INV001" (CSV) o como "JOHN JAIRO PATINO VANEGAS" (scraping), y
+    SCIENTI a veces escribe el nombre con distinta capitalizacion o espacios.
+    Tambien se indexa por los apellidos (ultimas dos palabras) para
+    recuperar coincidencias cuando el nombre completo difiere en formato.
     """
     indice: dict[str, models.Investigador] = {}
     for inv in db.query(models.Investigador).all():
         indice.setdefault(inv.id, inv)
-        indice.setdefault(_clave_nombre(inv.nombre), inv)
+        clave = _clave_nombre(inv.nombre)
+        indice.setdefault(clave, inv)
+        # Indexar por apellidos (ultimas dos palabras normalizadas) para
+        # recuperar coincidencias cuando el formato del nombre difiere.
+        partes = clave.split()
+        if len(partes) >= 2:
+            apellidos = " ".join(partes[-2:])
+            indice.setdefault(apellidos, inv)
+        if len(partes) >= 3:
+            # Tambien por la ultima palabra sola (apellido principal)
+            indice.setdefault(partes[-1], inv)
     return indice
 
 
@@ -193,7 +206,14 @@ def guardar_productos(db: Session, filas: list[dict], indice: dict | None = None
         # scraping que desde el CSV.
         existente.autores = []
         for aut in f.get("autores", []):
-            inv = indice.get(aut) or indice.get(_clave_nombre(aut))
+            clave_aut = _clave_nombre(aut)
+            inv = indice.get(aut) or indice.get(clave_aut)
+            if inv is None:
+                partes_aut = clave_aut.split()
+                if len(partes_aut) >= 2:
+                    inv = indice.get(" ".join(partes_aut[-2:]))
+                if inv is None and len(partes_aut) >= 1:
+                    inv = indice.get(partes_aut[-1])
             if inv is not None:
                 # La relacion es N:M con tabla intermedia, asi que se reemplaza la lista
                 # completa para que SQLAlchemy registre la diferencia.
