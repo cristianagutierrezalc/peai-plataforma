@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Pencil } from "lucide-react";
 import { productos, grupos, investigadores } from "../services/api";
 import { useColeccion, mensajeError } from "../hooks/useColeccion";
 import { MensajeError, EstadoVacio, MensajeAviso } from "../components/Feedback";
 import { Boton, Badge, Tabla } from "../components/ui";
+import Formulario from "../components/Formulario";
 
 const TIPOS = [
   "ARTICULO", "LIBRO", "CAPITULO", "SOFTWARE", "PATENTE",
   "TRABAJO_DIRIGIDO", "EVENTO", "PROYECTO", "OTRO",
 ];
+
 const VALIDACIONES = ["VALIDADO", "NO_VALIDADO", "EN_REVISION"];
 
 const formVacio = () => ({
@@ -52,6 +54,8 @@ export default function Productos() {
   const [form, setForm] = useState(formVacio);
   const [errorForm, setErrorForm] = useState("");
   const [guardando, setGuardando] = useState(false);
+  const [editando, setEditando] = useState(null);
+  const [busqueda, setBusqueda] = useState("");
 
   useEffect(() => {
     let cancelado = false;
@@ -106,15 +110,58 @@ export default function Productos() {
     }
   };
 
+  const guardarEdicion = async (cambios) => {
+    if (typeof cambios.activo === "string") {
+      cambios.activo = cambios.activo === "true";
+    }
+    await productos.actualizar(editando.id, cambios);
+    setEditando(null);
+    await recargar();
+  };
+
   const eliminar = async (id) => {
     if (!window.confirm(`¿Eliminar el producto ${id}? Esta accion no se puede deshacer.`)) return;
     try {
       await productos.eliminar(id);
+      if (editando?.id === id) setEditando(null);
       await recargar();
     } catch (err) {
       setErrorForm(mensajeError(err, "No se pudo eliminar el producto"));
     }
   };
+
+  // Los campos de edicion se arman aqui porque el desplegable de grupo
+  // necesita la lista de grupos y la de autores la de investigadores.
+  const camposEdicion = [
+    { name: "titulo", etiqueta: "Título", required: true, anchoCompleto: true },
+    { name: "tipo", etiqueta: "Tipo", tipo: "select", opciones: TIPOS },
+    { name: "categoria", etiqueta: "Categoría" },
+    { name: "validacion", etiqueta: "Validación", tipo: "select", opciones: VALIDACIONES },
+    { name: "anio", etiqueta: "Año", tipo: "number" },
+    {
+      name: "grupo_cod",
+      etiqueta: "Grupo de investigación",
+      tipo: "select",
+      opciones: gruposList.map((g) => g.cod),
+    },
+    { name: "activo", etiqueta: "Activo", tipo: "select", opciones: ["true", "false"] },
+    {
+      name: "autores",
+      etiqueta: "Autores",
+      tipo: "chips",
+      anchoCompleto: true,
+      // Se muestra el nombre, pero lo que se guarda es el ID.
+      opciones: invsList.map((i) => ({ valor: i.id, texto: i.nombre })),
+    },
+  ];
+
+  const filtrada = lista.filter((p) => {
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return true;
+    return [p.id, p.titulo, p.tipo, p.grupo_cod, p.categoria].some((v) =>
+      String(v ?? "").toLowerCase().includes(q)
+    );
+  });
 
   const abrirForm = () => {
     setErrorForm("");
@@ -223,7 +270,39 @@ export default function Productos() {
         </form>
       )}
 
+      {editando && (
+        <Formulario
+          titulo={`Editando ${editando.id}`}
+          campos={camposEdicion}
+          valoresIniciales={{
+            titulo: editando.titulo,
+            tipo: editando.tipo,
+            categoria: editando.categoria || "",
+            validacion: editando.validacion,
+            anio: editando.anio || 0,
+            grupo_cod: editando.grupo_cod || "",
+            activo: String(editando.activo ?? true),
+            autores: editando.autores || [],
+          }}
+          onGuardar={guardarEdicion}
+          onCancelar={() => setEditando(null)}
+        />
+      )}
+
       {error && <MensajeError mensaje={error} onReintentar={() => recargar()} />}
+
+      {!cargando && lista.length > 3 && (
+        <div>
+          <label htmlFor="p-buscar" className="label">Buscar</label>
+          <input
+            id="p-buscar"
+            className="input"
+            placeholder="ID, título, tipo o grupo"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+          />
+        </div>
+      )}
 
       <Tabla
         caption="Listado de productos de investigación"
@@ -233,18 +312,28 @@ export default function Productos() {
         vacio={
           !error && (
             <EstadoVacio
-              titulo="No hay productos registrados"
-              descripcion="Registra el primer producto de investigación para alimentar las estadísticas."
+              titulo={busqueda ? "Ningún producto coincide con la búsqueda" : "No hay productos registrados"}
+              descripcion={
+                busqueda
+                  ? `No se encontró nada para "${busqueda}". Prueba con otro texto.`
+                  : "Registra el primer producto de investigación para alimentar las estadísticas."
+              }
               accion={
-                <Boton onClick={abrirForm} className="mt-1">
-                  <Plus size={16} aria-hidden="true" /> Crear el primero
-                </Boton>
+                busqueda ? (
+                  <button type="button" onClick={() => setBusqueda("")} className="btn min-h-[44px] mt-1">
+                    Limpiar búsqueda
+                  </button>
+                ) : (
+                  <Boton onClick={abrirForm} className="mt-1">
+                    <Plus size={16} aria-hidden="true" /> Crear el primero
+                  </Boton>
+                )
               }
             />
           )
         }
       >
-        {lista.map((p) => (
+        {filtrada.map((p) => (
           <tr key={p.id}>
             <td className="nowrap font-medium">{p.id}</td>
             <td className="max-w-xs truncate" title={p.titulo}>{p.titulo}</td>
@@ -252,20 +341,38 @@ export default function Productos() {
             <td className="nowrap text-right">{p.anio || "—"}</td>
             <td className="nowrap">{p.validacion?.replace(/_/g, " ")}</td>
             <td className="nowrap">{p.grupo_cod || "—"}</td>
-            <td className="text-center"><Badge activo={p.activo} /></td>
+            <td className="text-center"><Badge ativo={p.activo} /></td>
             <td className="text-right">
-              <Boton
-                variante="dangerIcon"
-                onClick={() => eliminar(p.id)}
-                aria-label={`Eliminar el producto ${p.id}`}
-                title={`Eliminar ${p.id}`}
-              >
-                <Trash2 size={16} aria-hidden="true" />
-              </Boton>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setEditando(p)}
+                  aria-label={`Editar el producto ${p.id}`}
+                  title={`Editar ${p.id}`}
+                  className="btn-danger-icon hover:bg-primary-subtle hover:text-primary"
+                >
+                  <Pencil size={16} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => eliminar(p.id)}
+                  aria-label={`Eliminar el producto ${p.id}`}
+                  title={`Eliminar ${p.id}`}
+                  className="btn-danger-icon"
+                >
+                  <Trash2 size={16} aria-hidden="true" />
+                </button>
+              </div>
             </td>
           </tr>
         ))}
       </Tabla>
+
+      {!cargando && busqueda && filtrada.length > 0 && (
+        <p className="text-sm text-muted-foreground">
+          Mostrando {filtrada.length} de {lista.length} productos.
+        </p>
+      )}
     </div>
   );
 }

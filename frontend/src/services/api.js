@@ -71,10 +71,12 @@ export const productos = {
   eliminar: (id) => api.delete(`/productos/${id}`),
 };
 
+//estadisticas: acepta ventana de observacion (requisito 10),
+// rango explicito (desde/hasta) y anio de referencia.
 export const estadisticas = {
   global: (params) => api.get("/estadisticas/global", { params }),
-  grupo: (cod) => api.get(`/estadisticas/grupo/${cod}`),
-  investigador: (id) => api.get(`/estadisticas/investigador/${id}`),
+  grupo: (cod, params) => api.get(`/estadisticas/grupo/${cod}`, { params }),
+  investigador: (id, params) => api.get(`/estadisticas/investigador/${id}`, { params }),
 };
 
 // Requerimiento 7: importacion de datos de SCIENTI por CSV, PDF o scraping.

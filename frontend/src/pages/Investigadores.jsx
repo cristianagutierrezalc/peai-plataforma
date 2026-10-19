@@ -1,9 +1,10 @@
 import { useCallback, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Pencil } from "lucide-react";
 import { investigadores } from "../services/api";
 import { useColeccion, mensajeError } from "../hooks/useColeccion";
 import { MensajeError, EstadoVacio } from "../components/Feedback";
 import { Boton, Badge, Tabla } from "../components/ui";
+import Formulario from "../components/Formulario";
 
 const FORM_VACIO = { id: "", nombre: "", categoria: "SIN_CATEGORIA", formacion: "", email: "" };
 const CATEGORIAS = ["SENIOR", "JUNIOR", "SIN_CATEGORIA"];
@@ -18,6 +19,14 @@ const CABECERAS = [
   { clave: "acciones", texto: "Acciones", align: "right" },
 ];
 
+const CAMPOS_EDICION = [
+  { name: "nombre", etiqueta: "Nombre", required: true },
+  { name: "categoria", etiqueta: "Categoría", tipo: "select", opciones: CATEGORIAS },
+  { name: "formacion", etiqueta: "Formación" },
+  { name: "email", etiqueta: "Correo institucional", tipo: "email" },
+  { name: "activo", etiqueta: "Activo", tipo: "select", opciones: ["true", "false"] },
+];
+
 export default function Investigadores() {
   const cargarInvestigadores = useCallback(async () => {
     const r = await investigadores.listar();
@@ -30,6 +39,8 @@ export default function Investigadores() {
   const [form, setForm] = useState(FORM_VACIO);
   const [errorForm, setErrorForm] = useState("");
   const [guardando, setGuardando] = useState(false);
+  const [editando, setEditando] = useState(null);
+  const [busqueda, setBusqueda] = useState("");
 
   const crear = async (e) => {
     e.preventDefault();
@@ -47,10 +58,20 @@ export default function Investigadores() {
     }
   };
 
+  const guardarEdicion = async (cambios) => {
+    if (typeof cambios.activo === "string") {
+      cambios.activo = cambios.activo === "true";
+    }
+    await investigadores.actualizar(editando.id, cambios);
+    setEditando(null);
+    await recargar();
+  };
+
   const eliminar = async (id) => {
     if (!window.confirm(`¿Eliminar el investigador ${id}? Esta accion no se puede deshacer.`)) return;
     try {
       await investigadores.eliminar(id);
+      if (editando?.id === id) setEditando(null);
       await recargar();
     } catch (err) {
       setErrorForm(mensajeError(err, "No se pudo eliminar el investigador"));
@@ -63,6 +84,14 @@ export default function Investigadores() {
   };
 
   const set = (campo) => (e) => setForm({ ...form, [campo]: e.target.value });
+
+  const filtrada = lista.filter((i) => {
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return true;
+    return [i.id, i.nombre, i.email, i.formacion, i.categoria].some((v) =>
+      String(v ?? "").toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="space-y-6">
@@ -111,7 +140,36 @@ export default function Investigadores() {
         </form>
       )}
 
+      {editando && (
+        <Formulario
+          titulo={`Editando ${editando.id}`}
+          campos={CAMPOS_EDICION}
+          valoresIniciales={{
+            nombre: editando.nombre,
+            categoria: editando.categoria,
+            formacion: editando.formacion || "",
+            email: editando.email || "",
+            activo: String(editando.activo ?? true),
+          }}
+          onGuardar={guardarEdicion}
+          onCancelar={() => setEditando(null)}
+        />
+      )}
+
       {error && <MensajeError mensaje={error} onReintentar={() => recargar()} />}
+
+      {!cargando && lista.length > 3 && (
+        <div>
+          <label htmlFor="i-buscar" className="label">Buscar</label>
+          <input
+            id="i-buscar"
+            className="input"
+            placeholder="ID, nombre, correo o formación"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+          />
+        </div>
+      )}
 
       <Tabla
         caption="Listado de investigadores"
@@ -121,18 +179,28 @@ export default function Investigadores() {
         vacio={
           !error && (
             <EstadoVacio
-              titulo="No hay investigadores registrados"
-              descripcion="Registra al primer investigador para poder asociarlo a grupos y productos."
+              titulo={busqueda ? "Ningún investigador coincide con la búsqueda" : "No hay investigadores registrados"}
+              descripcion={
+                busqueda
+                  ? `No se encontró nada para "${busqueda}". Prueba con otro texto.`
+                  : "Registra al primer investigador para poder asociarlo a grupos y productos."
+              }
               accion={
-                <Boton onClick={abrirForm} className="mt-1">
-                  <Plus size={16} aria-hidden="true" /> Crear el primero
-                </Boton>
+                busqueda ? (
+                  <button type="button" onClick={() => setBusqueda("")} className="btn min-h-[44px] mt-1">
+                    Limpiar búsqueda
+                  </button>
+                ) : (
+                  <Boton onClick={abrirForm} className="mt-1">
+                    <Plus size={16} aria-hidden="true" /> Crear el primero
+                  </Boton>
+                )
               }
             />
           )
         }
       >
-        {lista.map((i) => (
+        {filtrada.map((i) => (
           <tr key={i.id}>
             <td className="nowrap font-medium">{i.id}</td>
             <td>{i.nombre}</td>
@@ -149,18 +217,36 @@ export default function Investigadores() {
             </td>
             <td className="text-center"><Badge activo={i.activo} /></td>
             <td className="text-right">
-              <Boton
-                variante="dangerIcon"
-                onClick={() => eliminar(i.id)}
-                aria-label={`Eliminar el investigador ${i.id}`}
-                title={`Eliminar ${i.id}`}
-              >
-                <Trash2 size={16} aria-hidden="true" />
-              </Boton>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setEditando(i)}
+                  aria-label={`Editar el investigador ${i.id}`}
+                  title={`Editar ${i.id}`}
+                  className="btn-danger-icon hover:bg-primary-subtle hover:text-primary"
+                >
+                  <Pencil size={16} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => eliminar(i.id)}
+                  aria-label={`Eliminar el investigador ${i.id}`}
+                  title={`Eliminar ${i.id}`}
+                  className="btn-danger-icon"
+                >
+                  <Trash2 size={16} aria-hidden="true" />
+                </button>
+              </div>
             </td>
           </tr>
         ))}
       </Tabla>
+
+      {!cargando && busqueda && filtrada.length > 0 && (
+        <p className="text-sm text-muted-foreground">
+          Mostrando {filtrada.length} de {lista.length} investigadores.
+        </p>
+      )}
     </div>
   );
 }

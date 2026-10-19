@@ -1,4 +1,6 @@
 """Operaciones CRUD sobre la base de datos."""
+from datetime import date
+
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from . import models, schemas
@@ -211,7 +213,47 @@ def atender_actividad(db: Session, grupo_cod: str):
 
 
 # ---- Estadisticas ----
-def resumen_global(db: Session, incluir_inactivos: bool = False):
+def _anio_maximo_productos(db: Session) -> int:
+    """Anio mas reciente que tiene al menos un producto.
+
+    La ventana se cuenta desde el ultimo anio con datos, no desde el anio en
+    curso. Si no, en enero de 2026 "los ultimos dos anios" solo incluiria 2025
+    y 2026, y 2026 no tiene nada todavia: el filtro pareceria roto.
+    """
+    return db.query(func.max(models.Producto.anio)).scalar() or date.today().year
+
+
+def resolver_ventana(db: Session, filtro: schemas.FiltroEstadisticas) -> tuple[int | None, int | None]:
+    """Traduce el filtro de observacion a un rango de anios (desde, hasta).
+
+    El requerimiento 10 pide filtrar por ventana de observacion: "los ultimos
+    dos anios", "los ultimos cinco". Se aceptan tres formas, y el rango
+    explicito manda sobre la ventana:
+
+    - ventana=N     -> ultimos N anios contando desde el ultimo anio con datos
+    - desde / hasta -> rango explicito
+    - anio_ref      -> la ventana se cuenta desde ese anio, para consultar
+                       periodos historicos y no solo el presente
+
+    Sin filtro devuelve (None, None), que es "todos los anios".
+    """
+    # El rango explicito manda: si se da "desde" o "hasta", la ventana no pisa.
+    # Un limite ausente queda abierto (None), no se rellena con el anio actual.
+    if filtro.desde is not None or filtro.hasta is not None:
+        return filtro.desde, filtro.hasta
+
+    if filtro.ventana:
+        hasta = filtro.anio_ref or _anio_maximo_productos(db)
+        return hasta - filtro.ventana + 1, hasta
+
+    return None, filtro.anio_ref
+
+
+def resumen_global(db: Session, incluir_inactivos: bool = False, filtro: schemas.FiltroEstadisticas | None = None):
+    filtro = filtro or schemas.FiltroEstadisticas(incluir_inactivos=incluir_inactivos)
+    incluir_inactivos = filtro.incluir_inactivos
+    desde, hasta = resolver_ventana(db, filtro)
+
     q_prod = db.query(models.Producto)
     q_grp = db.query(models.Grupo)
     q_inv = db.query(models.Investigador)
@@ -219,6 +261,16 @@ def resumen_global(db: Session, incluir_inactivos: bool = False):
         q_prod = q_prod.filter(models.Producto.activo == True)
         q_grp = q_grp.filter(models.Grupo.activo == True)
         q_inv = q_inv.filter(models.Investigador.activo == True)
+
+    # La ventana de observacion solo aplica a los productos, que son los que
+    # tienen anio. Grupos e investigadores se cuentan sobre el total.
+    if desde is not None or hasta is not None:
+        condiciones = []
+        if desde is not None:
+            condiciones.append(models.Producto.anio >= desde)
+        if hasta is not None:
+            condiciones.append(models.Producto.anio <= hasta)
+        q_prod = q_prod.filter(*condiciones)
 
     productos = q_prod.all()
     grupos = q_grp.all()
@@ -248,28 +300,64 @@ def resumen_global(db: Session, incluir_inactivos: bool = False):
         "por_validacion": por_validacion,
         "por_grupo": por_grupo,
         "por_investigador": por_investigador,
+        "ventana": {"desde": desde, "hasta": hasta},
     }
 
 
-def vista_grupo(db: Session, cod: str):
+def _dentro(anio: int, desde: int | None, hasta: int | None) -> bool:
+    if desde is not None and anio < desde:
+        return False
+    if hasta is not None and anio > hasta:
+        return False
+    return True
+
+
+def _acotar_ventana(productos, desde: int | None, hasta: int | None, ventana: int | None):
+    """Acota una vista individual a la ventana de observacion indicada.
+
+    Si no se pasa ventana ni rango, el limite superior es el anio mas
+    reciente presente en los datos, no el anio en curso: asi la vista de un
+    grupo muestra todo lo que tiene, en vez de recortar productos futuros
+    que todavia no existen.
+    """
+    if desde is None and hasta is None and not ventana:
+        return None, None
+
+    anios = [p.anio for p in productos if p.anio]
+    if hasta is None:
+        hasta = max(anios) if anios else date.today().year
+    if desde is None and ventana:
+        desde = hasta - ventana + 1
+    return desde, hasta
+
+
+def vista_grupo(db: Session, cod: str, desde: int | None = None, hasta: int | None = None, ventana: int | None = None):
     g = obtener_grupo(db, cod)
     if not g:
         return None
     productos = [p for p in g.productos if p.activo]
+    desde, hasta = _acotar_ventana(productos, desde, hasta, ventana)
+    if desde is not None or hasta is not None:
+        productos = [p for p in productos if _dentro(p.anio, desde, hasta)]
     return {
         "grupo": g,
         "n_productos": len(productos),
         "productos": productos,
+        "ventana": {"desde": desde, "hasta": hasta},
     }
 
 
-def vista_investigador(db: Session, inv_id: str):
+def vista_investigador(db: Session, inv_id: str, desde: int | None = None, hasta: int | None = None, ventana: int | None = None):
     inv = obtener_investigador(db, inv_id)
     if not inv:
         return None
     productos = [p for p in inv.productos if p.activo]
+    desde, hasta = _acotar_ventana(productos, desde, hasta, ventana)
+    if desde is not None or hasta is not None:
+        productos = [p for p in productos if _dentro(p.anio, desde, hasta)]
     return {
         "investigador": inv,
         "n_productos": len(productos),
         "productos": productos,
+        "ventana": {"desde": desde, "hasta": hasta},
     }
