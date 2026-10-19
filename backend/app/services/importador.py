@@ -629,11 +629,20 @@ def _extraer_grupo(texto: str) -> dict | None:
     # terminado en digitos, asi que los digitos son opcionales.
     patron = r"(GRUPO\s+DE\s+INVESTIGACION[^-|]{3,200}?)\s*-\s*([A-Z]{2,10}\d{0,4})\s*-"
     m = re.search(patron, texto, re.IGNORECASE)
-    if not m:
-        return None
-
-    nombre = re.sub(r"\s+", " ", m.group(1)).strip()
-    cod = m.group(2).strip().upper()
+    if m:
+        nombre = re.sub(r"\s+", " ", m.group(1)).strip()
+        cod = m.group(2).strip().upper()
+    else:
+        # Fallback: SCIENTI muestra el nombre del grupo como primera linea
+        # del texto (sin prefijo "GRUPO DE INVESTIGACION"). Generamos un
+        # codigo a partir de las iniciales del nombre.
+        lineas = [l.strip() for l in texto.splitlines() if l.strip()]
+        nombre = lineas[0] if lineas else "Grupo importado de SCIENTI"
+        # Codigo: iniciales de cada palabra en mayusculas, max 10 caracteres.
+        iniciales = "".join(p[0] for p in nombre.split() if p and p[0].isalpha()).upper()
+        if len(iniciales) < 3:
+            iniciales = re.sub(r"\s+", "", nombre).upper()[:10]
+        cod = iniciales[:10] if iniciales else "GIMPORT"
 
     categoria = "SIN_CLASIFICAR"
     mc = re.search(r"Clasificaci[oó]n\s+([A-C1])\b", texto, re.IGNORECASE)
