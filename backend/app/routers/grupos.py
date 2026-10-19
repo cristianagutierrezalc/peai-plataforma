@@ -8,7 +8,7 @@ from .. import models, schemas, crud
 router = APIRouter(prefix="/api/grupos", tags=["Grupos"])
 
 
-@router.get("/", response_model=List[schemas.GrupoRespuesta])
+@router.get("", response_model=List[schemas.GrupoRespuesta], include_in_schema=False)
 def listar_grupos(skip: int = 0, limit: int = 100, activo: bool | None = None, db: Session = Depends(get_db)):
     return crud.listar_grupos(db, skip=skip, limit=limit, activo=activo)
 
@@ -21,7 +21,7 @@ def obtener_grupo(cod: str, db: Session = Depends(get_db)):
     return g
 
 
-@router.post("/", response_model=schemas.GrupoRespuesta, status_code=201)
+@router.post("", response_model=schemas.GrupoRespuesta, status_code=201, include_in_schema=False)
 def crear_grupo(grupo: schemas.GrupoCrear, db: Session = Depends(get_db)):
     if crud.obtener_grupo(db, grupo.cod):
         raise HTTPException(status_code=400, detail=f"Ya existe el grupo '{grupo.cod}'")

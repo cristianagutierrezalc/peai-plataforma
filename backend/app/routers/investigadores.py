@@ -8,7 +8,7 @@ from .. import models, schemas, crud
 router = APIRouter(prefix="/api/investigadores", tags=["Investigadores"])
 
 
-@router.get("/", response_model=List[schemas.InvestigadorRespuesta])
+@router.get("", response_model=List[schemas.InvestigadorRespuesta], include_in_schema=False)
 def listar_investigadores(skip: int = 0, limit: int = 100, activo: bool | None = None, db: Session = Depends(get_db)):
     return crud.listar_investigadores(db, skip=skip, limit=limit, activo=activo)
 
@@ -21,7 +21,7 @@ def obtener_investigador(inv_id: str, db: Session = Depends(get_db)):
     return inv
 
 
-@router.post("/", response_model=schemas.InvestigadorRespuesta, status_code=201)
+@router.post("", response_model=schemas.InvestigadorRespuesta, status_code=201, include_in_schema=False)
 def crear_investigador(inv: schemas.InvestigadorCrear, db: Session = Depends(get_db)):
     if crud.obtener_investigador(db, inv.id):
         raise HTTPException(status_code=400, detail=f"Ya existe el investigador '{inv.id}'")

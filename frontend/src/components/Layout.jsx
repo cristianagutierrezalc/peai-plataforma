@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Users, FileText, LogOut, Menu } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -12,10 +13,12 @@ const navItems = [
 export default function Layout({ children }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const { usuario, cerrarSesion } = useAuth();
 
   const logout = () => {
-    localStorage.removeItem("peai_token");
-    navigate("/login");
+    // cerrarSesion limpia el estado del contexto, no solo localStorage.
+    cerrarSesion();
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -71,12 +74,34 @@ export default function Layout({ children }) {
       {/* Contenido */}
       <div className="lg:pl-64">
         <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-white px-6 shadow-sm">
-          <button className="lg:hidden" onClick={() => setOpen(true)}>
-            <Menu size={20} />
+          <button
+            type="button"
+            className="lg:hidden"
+            onClick={() => setOpen(true)}
+            aria-label="Abrir menu de navegacion"
+            aria-expanded={open}
+          >
+            <Menu size={20} aria-hidden="true" />
           </button>
           <h1 className="text-lg font-semibold text-slate-800">
             Universidad Popular del Cesar
           </h1>
+          {usuario && (
+            <div className="ml-auto flex items-center gap-3">
+              <div className="hidden text-right sm:block">
+                <p className="text-sm font-medium text-slate-700">
+                  {usuario.nombre || usuario.username}
+                </p>
+                <p className="text-xs capitalize text-slate-400">{usuario.rol}</p>
+              </div>
+              <div
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700"
+                aria-hidden="true"
+              >
+                {(usuario.nombre || usuario.username || "?").charAt(0).toUpperCase()}
+              </div>
+            </div>
+          )}
         </header>
         <main className="p-6">{children}</main>
       </div>

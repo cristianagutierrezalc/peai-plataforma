@@ -24,7 +24,7 @@ def _producto_a_respuesta(p: models.Producto) -> schemas.ProductoRespuesta:
     )
 
 
-@router.get("/", response_model=List[schemas.ProductoRespuesta])
+@router.get("", response_model=List[schemas.ProductoRespuesta], include_in_schema=False)
 def listar_productos(
     skip: int = 0, limit: int = 100, activo: bool | None = None,
     grupo_cod: str | None = None, anio_desde: int | None = None,
@@ -43,7 +43,7 @@ def obtener_producto(pid: str, db: Session = Depends(get_db)):
     return _producto_a_respuesta(p)
 
 
-@router.post("/", response_model=schemas.ProductoRespuesta, status_code=201)
+@router.post("", response_model=schemas.ProductoRespuesta, status_code=201, include_in_schema=False)
 def crear_producto(prod: schemas.ProductoCrear, db: Session = Depends(get_db)):
     if crud.obtener_producto(db, prod.id):
         raise HTTPException(status_code=400, detail=f"Ya existe el producto '{prod.id}'")

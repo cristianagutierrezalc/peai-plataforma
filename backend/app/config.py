@@ -27,7 +27,14 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60 * 24  # 24 horas
 
     # CORS
-    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    # Incluir localhost y 127.0.0.1: el navegador los trata como origenes
+    # distintos y con solo uno de los dos el otro falla.
+    cors_origins: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+    ]
 
     # Registro publico de usuarios.
     # False = cerrado. Solo un admin autenticado puede crear usuarios.
