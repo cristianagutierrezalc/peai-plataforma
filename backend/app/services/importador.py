@@ -98,7 +98,10 @@ ALIASAS = {
 
 def _normalizar(texto: Any) -> str:
     """Normaliza una clave de encabezado: minusculas, sin espacios ni tildes."""
+    import unicodedata
     s = str(texto or "").strip().lower()
+    s = unicodedata.normalize("NFKD", s)
+    s = "".join(c for c in s if not unicodedata.combining(c))
     s = s.replace("á", "a").replace("é", "e").replace("í", "i")
     s = s.replace("ó", "o").replace("ú", "u").replace("ñ", "n")
     s = re.sub(r"[\s_\-]+", "", s)
