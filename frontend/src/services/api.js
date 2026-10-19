@@ -76,3 +76,11 @@ export const estadisticas = {
   grupo: (cod) => api.get(`/estadisticas/grupo/${cod}`),
   investigador: (id) => api.get(`/estadisticas/investigador/${id}`),
 };
+
+// Requerimiento 7: importacion de datos de SCIENTI por CSV, PDF o scraping.
+export const importacion = {
+  csv: (formData) => api.post("/importacion/csv", formData),
+  pdf: (formData) => api.post("/importacion/pdf", formData),
+  scienti: (url) => api.post("/importacion/scienti", { url }),
+  plantillaUrl: (entidad) => `${api.defaults.baseURL}/importacion/plantilla/${entidad}`,
+};

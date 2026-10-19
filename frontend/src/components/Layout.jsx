@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, FileText, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, Users, FileText, LogOut, Menu, X, Upload } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
@@ -8,6 +8,7 @@ const navItems = [
   { to: "/grupos", label: "Grupos", icon: Users },
   { to: "/investigadores", label: "Investigadores", icon: Users },
   { to: "/productos", label: "Productos", icon: FileText },
+  { to: "/importar", label: "Importar", icon: Upload },
 ];
 
 export default function Layout({ children }) {

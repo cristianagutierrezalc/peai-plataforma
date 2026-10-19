@@ -7,6 +7,7 @@ import Grupos from "./pages/Grupos";
 import Investigadores from "./pages/Investigadores";
 import Productos from "./pages/Productos";
 import Login from "./pages/Login";
+import Importar from "./pages/Importar";
 
 function Rutas() {
   // El estado de sesion vive en el contexto. Antes se leia localStorage
@@ -31,6 +32,7 @@ function Rutas() {
         <Route path="/grupos" element={<Grupos />} />
         <Route path="/investigadores" element={<Investigadores />} />
         <Route path="/productos" element={<Productos />} />
+        <Route path="/importar" element={<Importar />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

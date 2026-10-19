@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import get_settings
 from .database import init_db, SessionLocal
 from .seed import seed_admin
-from .routers import grupos, investigadores, productos, estadisticas, auth
+from .routers import grupos, investigadores, productos, estadisticas, auth, importacion
 
 settings = get_settings()
 logger = logging.getLogger("peai")
@@ -51,6 +51,8 @@ app.include_router(grupos.router)
 app.include_router(investigadores.router)
 app.include_router(productos.router)
 app.include_router(estadisticas.router)
+# La importacion no exige sesion: es la carga inicial de datos de SCIENTI.
+app.include_router(importacion.router)
 
 
 @app.get("/")
