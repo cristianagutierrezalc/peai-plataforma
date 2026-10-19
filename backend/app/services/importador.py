@@ -675,7 +675,10 @@ def _leer_integrantes(filas: list) -> list[dict]:
         # La segunda fila son los encabezados: Nombre, Vinculacion, Horas...
         if _normalizar(celdas[0]) == "nombre":
             continue
-        nombre = re.sub(r"^\d{1,3}\s*[.)-]\s*", "", celdas[0]).strip()
+        # SCIENTI numera los integrantes como "1.- Nombre". El separador lleva
+        # punto Y guion, asi que la clase acepta varios caracteres seguidos:
+        # con [.)-] solo se quitaba el punto y el guion colgaba del nombre.
+        nombre = re.sub(r"^\d{1,3}\s*[.)-]+\s*", "", celdas[0]).strip()
         if len(nombre) < 4 or not any(ch.isalpha() for ch in nombre):
             continue
         resultado.append(_crear_investigador(nombre))
@@ -727,7 +730,9 @@ def _leer_productos_scienti(filas: list, seccion: str, grupo: dict | None) -> li
         if len(cuerpo) < 8:
             continue
 
-        # SCIENTI escribe el producto como "<etiqueta> : <titulo>, <pais>,
+        # "Publicado en revista especializada: TITULO, ...". La etiqueta describe
+        # el tipo y nunca es parte del titulo, asi que se separa siempre por el
+        # primer dos puntos cuando el prefijo es corto.
         # <ano>, <extra> Autores: ...". La etiqueta describe el tipo y nunca
         # es parte del titulo, asi que se separa siempre por el primer dos
         # puntos cuando el prefijo es corto.
