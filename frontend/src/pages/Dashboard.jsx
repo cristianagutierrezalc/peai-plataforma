@@ -8,7 +8,15 @@ import { estadisticas } from "../services/api";
 import { mensajeError } from "../hooks/useColeccion";
 import { MensajeError } from "../components/Feedback";
 
-const COLORS = ["#3b82f6", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
+const COLORES = [
+  "hsl(var(--blue-500))",
+  "hsl(var(--sky-500))",
+  "hsl(var(--emerald-500))",
+  "hsl(var(--amber-500))",
+  "hsl(var(--red-500))",
+  "hsl(var(--blue-800))",
+  "hsl(var(--blue-300))",
+];
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
@@ -46,7 +54,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3" role="status" aria-live="polite">
         <span className="sr-only">Cargando estadisticas</span>
         {[0, 1, 2].map((i) => (
-          <div key={i} className="rounded-xl bg-white p-6 shadow-sm">
+          <div key={i} className="card">
             <div className="h-4 w-24 animate-pulse rounded bg-slate-200" />
             <div className="mt-3 h-9 w-16 animate-pulse rounded bg-slate-200" />
           </div>
@@ -56,19 +64,15 @@ export default function Dashboard() {
   }
 
   if (error) return <MensajeError mensaje={error} />;
-
   if (!data) return <MensajeError mensaje="No hay datos disponibles todavia" />;
 
-  const tipoData = Object.entries(data.por_tipo || {}).map(([k, v]) => ({
-    name: k,
-    value: v,
-  }));
+  const tipoData = Object.entries(data.por_tipo || {}).map(([k, v]) => ({ name: k, value: v }));
   const anioData = Object.entries(data.por_anio || {})
     .map(([k, v]) => ({ name: k, value: v }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const kpis = [
-    { label: "Productos", value: data.n_productos, color: "text-primary-600", Icon: Package },
+    { label: "Productos", value: data.n_productos, color: "text-primary", Icon: Package },
     { label: "Grupos", value: data.n_grupos, color: "text-accent", Icon: FolderKanban },
     { label: "Investigadores", value: data.n_investigadores, color: "text-success", Icon: Users },
   ];
@@ -77,16 +81,16 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-slate-800">Dashboard</h2>
+      <h2 className="text-2xl font-bold text-foreground">Dashboard</h2>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {kpis.map(({ label, value, color, Icon }) => (
-          <div key={label} className="flex items-center gap-4 rounded-xl bg-white p-6 shadow-sm">
-            <div className={`rounded-lg bg-slate-50 p-3 ${color}`}>
+          <div key={label} className="card flex items-center gap-4">
+            <div className={`rounded-lg bg-muted p-3 ${color}`}>
               <Icon size={22} aria-hidden="true" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">{label}</p>
+              <p className="text-sm text-muted-foreground">{label}</p>
               <p className={`text-3xl font-bold ${color}`}>{value ?? 0}</p>
             </div>
           </div>
@@ -94,29 +98,33 @@ export default function Dashboard() {
       </div>
 
       {sinDatos ? (
-        <div className="rounded-xl bg-white p-12 text-center shadow-sm">
+        <div className="card py-12 text-center">
           <p className="font-medium text-slate-700">Todavia no hay datos que graficar</p>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             Registra investigadores, grupos y productos para ver las estadisticas.
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="rounded-xl bg-white p-6 shadow-sm">
+          <div className="card">
             <h3 className="mb-4 text-sm font-semibold text-slate-700">Productos por tipo</h3>
             {tipoData.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
                   <Pie data={tipoData} dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={90}>
                     {tipoData.map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                      <Cell key={i} fill={COLORES[i % COLORES.length]} />
                     ))}
                   </Pie>
-                  {/* Antes se ponia label={...} sobre cada rebanada, que
-                      imprimia los nombres crudos (TRABAJO_DIRIGIDO) encima
-                      unas de otras. La leyenda resuelve eso. */}
-                  <Legend verticalAlign="bottom" height={48} formatter={(v) => <span className="text-xs text-slate-600">{v}</span>} />
-                  <Tooltip />
+                  {/* Antes se ponia label sobre cada rebanada, que imprimia
+                      los nombres crudos (TRABAJO_DIRIGIDO) encima unas de
+                      otras. La leyenda resuelve eso. */}
+                  <Legend
+                    verticalAlign="bottom"
+                    height={48}
+                    formatter={(v) => <span className="text-xs text-slate-600">{v.replace(/_/g, " ")}</span>}
+                  />
+                  <Tooltip formatter={(v, n) => [v, n.replace(/_/g, " ")]} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -124,7 +132,7 @@ export default function Dashboard() {
             )}
           </div>
 
-          <div className="rounded-xl bg-white p-6 shadow-sm">
+          <div className="card">
             <h3 className="mb-4 text-sm font-semibold text-slate-700">Productos por año</h3>
             {anioData.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
@@ -132,7 +140,7 @@ export default function Dashboard() {
                   <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                   <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                   <Tooltip />
-                  <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Productos" />
+                  <Bar dataKey="value" fill="hsl(var(--blue-500))" radius={[4, 4, 0, 0]} name="Productos" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (

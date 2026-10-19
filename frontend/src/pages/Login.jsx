@@ -29,18 +29,16 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-subtle to-slate-100 px-4">
+      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-primary-700">PEA-i</h1>
-          <p className="text-sm text-slate-500">Programa Estadístico de Análisis de Investigación</p>
+          <h1 className="text-2xl font-bold text-primary">PEA-i</h1>
+          <p className="text-sm text-muted-foreground">Programa Estadístico de Análisis de Investigación</p>
           <p className="text-xs text-slate-400">Universidad Popular del Cesar</p>
         </div>
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <label htmlFor="login-user" className="mb-1 block text-sm font-medium text-slate-700">
-              Usuario
-            </label>
+            <label htmlFor="login-user" className="label">Usuario</label>
             <input
               id="login-user"
               name="username"
@@ -48,14 +46,12 @@ export default function Login() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+              className="input"
               required
             />
           </div>
           <div>
-            <label htmlFor="login-pass" className="mb-1 block text-sm font-medium text-slate-700">
-              Contraseña
-            </label>
+            <label htmlFor="login-pass" className="label">Contraseña</label>
             <input
               id="login-pass"
               name="password"
@@ -63,21 +59,16 @@ export default function Login() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+              className="input"
               required
             />
           </div>
           {error && (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm text-danger-fg">
               {error}
             </p>
           )}
-          <button
-            type="submit"
-            disabled={loading}
-            aria-busy={loading}
-            className="w-full min-h-[44px] rounded-lg bg-primary-600 py-2 font-medium text-white hover:bg-primary-700 disabled:opacity-50"
-          >
+          <button type="submit" disabled={loading} aria-busy={loading} className="btn btn-primary w-full">
             {loading ? "Ingresando..." : "Ingresar"}
           </button>
         </form>

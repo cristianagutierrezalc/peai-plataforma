@@ -2,13 +2,287 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: "Inter", system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
+/* ==========================================================================
+   TOKENS - tres capas: primitivos -> semanticos -> componentes
+   Formato HSL separado por espacios para que Tailwind pueda aplicar
+   opacidad: bg-primary/50, text-danger/80, etc.
+   ========================================================================== */
+
+@layer base {
+  /* ---------- CAPA 1: PRIMITIVOS (valores crudos) ---------- */
+  :root {
+    /* Escala primary (azul) */
+    --blue-50: 214 100% 97%;
+    --blue-100: 214 95% 93%;
+    --blue-200: 214 97% 88%;
+    --blue-300: 212 88% 78%;
+    --blue-400: 217 91% 76%;
+    --blue-500: 217 91% 60%;
+    --blue-600: 221 83% 53%;
+    --blue-700: 224 76% 48%;
+    --blue-800: 226 71% 40%;
+    --blue-900: 224 64% 33%;
+
+    /* Acentos y estados */
+    --sky-500: 199 89% 48%;
+    --emerald-500: 160 84% 39%;
+    --emerald-100: 152 81% 96%;
+    --emerald-700: 153 96% 24%;
+    --amber-500: 38 92% 50%;
+    --amber-100: 48 96% 89%;
+    --amber-800: 26 90% 20%;
+    --red-500: 0 84% 60%;
+    --red-600: 0 72% 51%;
+    --red-100: 0 86% 97%;
+    --red-700: 0 79% 35%;
+    --red-200: 0 88% 90%;
+
+    /* Neutros */
+    --slate-50: 210 40% 98%;
+    --slate-100: 210 40% 96%;
+    --slate-200: 214 32% 91%;
+    --slate-300: 216 25% 84%;
+    --slate-400: 215 16% 65%;
+    --slate-500: 215 14% 51%;
+    --slate-600: 215 19% 40%;
+    --slate-700: 215 25% 27%;
+    --slate-800: 217 33% 17%;
+    --slate-900: 222 47% 11%;
+
+    /* Tipografia */
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 1.875rem;
+
+    /* Radios */
+    --radius-sm: 0.375rem;
+    --radius-default: 0.5rem;
+    --radius-lg: 0.75rem;
+
+    /* Sombras */
+    --shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+    --shadow-default: 0 1px 3px 0 rgb(15 23 42 / 0.1), 0 1px 2px -1px rgb(15 23 42 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(15 23 42 / 0.1), 0 4px 6px -4px rgb(15 23 42 / 0.1);
+
+    /* Transiciones (150ms color, 200ms transform) */
+    --duration-fast: 150ms;
+    --duration-normal: 200ms;
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Objetivo tactil minimo */
+    --touch-target: 44px;
+  }
+
+  /* ---------- CAPA 2: SEMANTICOS (alias con proposito) ---------- */
+  :root {
+    --background: var(--slate-50);
+    --surface: 0 0% 100%;
+    --foreground: var(--slate-800);
+
+    --primary: var(--blue-600);
+    --primary-hover: var(--blue-700);
+    --primary-active: var(--blue-800);
+    --primary-foreground: 0 0% 100%;
+    --primary-subtle: var(--blue-50);
+
+    --accent: var(--sky-500);
+    --success: var(--emerald-500);
+    --success-subtle: var(--emerald-100);
+    --success-foreground: var(--emerald-700);
+    --warning: var(--amber-500);
+    --warning-subtle: var(--amber-100);
+    --warning-foreground: var(--amber-800);
+    --danger: var(--red-600);
+    --danger-hover: var(--red-500);
+    --danger-subtle: var(--red-100);
+    --danger-foreground: var(--red-700);
+    --danger-border: var(--red-200);
+
+    --muted: var(--slate-100);
+    --muted-foreground: var(--slate-500);
+    --border: var(--slate-200);
+    --border-strong: var(--slate-300);
+    --input-border: var(--slate-300);
+    --ring: var(--blue-500);
+  }
+
+  /* ---------- CAPA 3: COMPONENTES ---------- */
+  :root {
+    --button-height: 40px;
+    --button-radius: var(--radius-default);
+    --button-padding-x: 1rem;
+
+    --input-height: 40px;
+    --input-padding-x: 0.75rem;
+    --input-radius: var(--radius-default);
+
+    --card-padding: 1.5rem;
+    --card-radius: var(--radius-lg);
+    --card-shadow: var(--shadow-sm);
+
+    --badge-padding-y: 0.25rem;
+    --badge-padding-x: 0.625rem;
+    --badge-radius: 9999px;
+
+    --table-cell-padding-y: 0.75rem;
+    --table-cell-padding-x: 1rem;
+  }
+
+  body {
+    font-family: "Inter", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: hsl(var(--foreground));
+    background-color: hsl(var(--background));
+  }
+
+  /* Foco visible y consistente. Antes cada componente lo hacia a su
+     manera y muchos no lo tenian, lo que rompe la navegacion por teclado. */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Scrollbar sutil */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: hsl(var(--slate-100)); }
+  ::-webkit-scrollbar-thumb { background: hsl(var(--slate-300)); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--slate-400)); }
 }
 
-/* Scrollbar sutil */
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: #f1f5f9; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+/* ==========================================================================
+   CLASES DE COMPONENTE
+   Centralizan los patrones que estaban repetidos como cadenas de clases
+   en las 4 paginas (boton primario, badge de estado, input, celda).
+   ========================================================================== */
+
+@layer components {
+  /* ---------- Botones ---------- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium;
+    height: var(--button-height);
+    padding-left: var(--button-padding-x);
+    padding-right: var(--button-padding-x);
+    border-radius: var(--button-radius);
+    font-size: var(--font-size-sm);
+    transition: background-color var(--duration-fast) var(--ease),
+                color var(--duration-fast) var(--ease),
+                border-color var(--duration-fast) var(--ease);
+  }
+
+  .btn-primary {
+    @apply bg-primary text-white hover:bg-primary-hover active:bg-primary-active;
+  }
+
+  .btn-ghost {
+    @apply text-muted-foreground hover:bg-muted hover:text-foreground;
+  }
+
+  .btn-danger-icon {
+    @apply inline-flex items-center justify-center rounded-lg text-danger
+           hover:bg-danger-subtle hover:text-danger-hover;
+    min-width: var(--touch-target);
+    min-height: var(--touch-target);
+    transition: background-color var(--duration-fast) var(--ease),
+                color var(--duration-fast) var(--ease);
+  }
+
+  .btn:disabled,
+  .btn-primary:disabled {
+    @apply pointer-events-none opacity-50;
+  }
+
+  /* ---------- Campos ---------- */
+  .label {
+    @apply mb-1 block text-sm font-medium text-slate-700;
+  }
+
+  .input {
+    @apply w-full border border-input-border bg-white text-slate-800
+           placeholder:text-slate-400
+           focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20
+           disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400;
+    height: var(--input-height);
+    padding-left: var(--input-padding-x);
+    padding-right: var(--input-padding-x);
+    border-radius: var(--input-radius);
+    font-size: var(--font-size-sm);
+    transition: border-color var(--duration-fast) var(--ease),
+                box-shadow var(--duration-fast) var(--ease);
+  }
+
+  .input-error {
+    @apply border-danger focus:border-danger focus:ring-danger/20;
+  }
+
+  /* ---------- Badge de estado ---------- */
+  .badge {
+    @apply inline-flex items-center whitespace-nowrap text-xs font-medium;
+    padding: var(--badge-padding-y) var(--badge-padding-x);
+    border-radius: var(--badge-radius);
+  }
+
+  .badge-success {
+    @apply bg-success-subtle text-success-fg;
+  }
+
+  .badge-neutral {
+    @apply bg-muted text-muted-foreground;
+  }
+
+  /* ---------- Tarjetas ---------- */
+  .card {
+    @apply bg-white;
+    padding: var(--card-padding);
+    border-radius: var(--card-radius);
+    box-shadow: var(--card-shadow);
+  }
+
+  .card-flush {
+    @apply bg-white;
+    border-radius: var(--card-radius);
+    box-shadow: var(--card-shadow);
+    padding: 0;
+  }
+
+  /* ---------- Tabla ---------- */
+  .table-wrap {
+    @apply overflow-x-auto bg-white;
+    border-radius: var(--card-radius);
+    box-shadow: var(--card-shadow);
+  }
+
+  .table {
+    @apply w-full text-sm;
+  }
+
+  .table thead {
+    @apply bg-slate-50 text-left text-slate-600;
+  }
+
+  .table th {
+    @apply font-medium;
+    padding: var(--table-cell-padding-y) var(--table-cell-padding-x);
+  }
+
+  .table td {
+    padding: var(--table-cell-padding-y) var(--table-cell-padding-x);
+  }
+
+  .table tbody tr {
+    @apply border-t transition-colors;
+    border-color: hsl(var(--border));
+  }
+
+  .table tbody tr:hover {
+    @apply bg-slate-50;
+  }
+
+  /* Celdas que no deben partirse nunca (IDs, anos, codigos) */
+  .nowrap {
+    @apply whitespace-nowrap;
+  }
+}
