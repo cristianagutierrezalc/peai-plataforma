@@ -34,7 +34,13 @@ class Usuario(Base):
     username = Column(String(100), unique=True, nullable=False, index=True)
     password_hash = Column(String(200), nullable=False)
     nombre = Column(String(200), default="")
-    rol = Column(SQLEnum(RolUsuario), default=RolUsuario.INVESTIGADOR)
+        # values_callable hace que SQLAlchemy use el .value del enum (minusculas)
+    # en vez del .name (mayusculas). Sin esto, PostgreSQL rechaza "ADMIN"
+    # porque el tipo enum solo tiene "admin". SQLite no se daba cuenta.
+    rol = Column(
+        SQLEnum(RolUsuario, values_callable=lambda x: [e.value for e in x]),
+        default=RolUsuario.INVESTIGADOR,
+    )
     activo = Column(Boolean, default=True)
     creado_en = Column(DateTime, server_default=func.now())
 
