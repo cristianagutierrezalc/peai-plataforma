@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from ..database import get_db
 from .. import models, schemas, crud
+from .productos import _producto_a_respuesta
 
 router = APIRouter(prefix="/api/grupos", tags=["Grupos"])
 
@@ -84,5 +85,5 @@ def vista_grupo(cod: str, db: Session = Depends(get_db)):
     return {
         "grupo": schemas.GrupoRespuesta.model_validate(res["grupo"]),
         "n_productos": res["n_productos"],
-        "productos": [schemas.ProductoRespuesta.model_validate(p) for p in res["productos"]],
+        "productos": [_producto_a_respuesta(p) for p in res["productos"]],
     }
