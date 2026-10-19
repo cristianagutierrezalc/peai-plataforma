@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { Plus, Trash2, Pencil, Eye } from "lucide-react";
 import { investigadores } from "../services/api";
 import { useColeccion, mensajeError } from "../hooks/useColeccion";
 import { MensajeError, EstadoVacio } from "../components/Feedback";
@@ -41,6 +41,8 @@ export default function Investigadores() {
   const [guardando, setGuardando] = useState(false);
   const [editando, setEditando] = useState(null);
   const [busqueda, setBusqueda] = useState("");
+  const [perfil, setPerfil] = useState(null);
+  const [cargandoPerfil, setCargandoPerfil] = useState(false);
 
   const crear = async (e) => {
     e.preventDefault();
@@ -75,6 +77,19 @@ export default function Investigadores() {
       await recargar();
     } catch (err) {
       setErrorForm(mensajeError(err, "No se pudo eliminar el investigador"));
+    }
+  };
+
+  const verPerfil = async (id) => {
+    setCargandoPerfil(true);
+    setPerfil(null);
+    try {
+      const r = await investigadores.vista(id);
+      setPerfil(r.data);
+    } catch (err) {
+      setErrorForm(mensajeError(err, "No se pudo cargar el perfil"));
+    } finally {
+      setCargandoPerfil(false);
     }
   };
 
@@ -220,6 +235,15 @@ export default function Investigadores() {
               <div className="flex justify-end">
                 <button
                   type="button"
+                  onClick={() => verPerfil(i.id)}
+                  aria-label={`Ver perfil del investigador ${i.id}`}
+                  title={`Ver perfil ${i.id}`}
+                  className="btn-danger-icon hover:bg-primary-subtle hover:text-primary"
+                >
+                  <Eye size={16} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
                   onClick={() => setEditando(i)}
                   aria-label={`Editar el investigador ${i.id}`}
                   title={`Editar ${i.id}`}
@@ -246,6 +270,49 @@ export default function Investigadores() {
         <p className="text-sm text-muted-foreground">
           Mostrando {filtrada.length} de {lista.length} investigadores.
         </p>
+      )}
+
+      {/* Modal de perfil del investigador */}
+      {(perfil || cargandoPerfil) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => { setPerfil(null); setCargandoPerfil(false); }}>
+          <div className="card max-w-2xl w-full max-h-[80vh] overflow-auto space-y-4" onClick={(e) => e.stopPropagation()}>
+            {cargandoPerfil && <p className="text-muted-foreground">Cargando perfil...</p>}
+            {perfil && (
+              <>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold text-foreground">{perfil.investigador.nombre}</h3>
+                  <button type="button" onClick={() => setPerfil(null)} className="btn-danger-icon" aria-label="Cerrar perfil">
+                    ✕
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                  <div><span className="font-semibold">ID:</span> {perfil.investigador.id}</div>
+                  <div><span className="font-semibold">Categoría:</span> {perfil.investigador.categoria}</div>
+                  <div><span className="font-semibold">Formación:</span> {perfil.investigador.formacion || "—"}</div>
+                  <div><span className="font-semibold">Correo:</span> {perfil.investigador.email || "—"}</div>
+                  <div><span className="font-semibold">Estado:</span> {perfil.investigador.activo ? "Activo" : "Inactivo"}</div>
+                  <div><span className="font-semibold">Productos:</span> {perfil.n_productos}</div>
+                </div>
+                {perfil.productos && perfil.productos.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-foreground">Productos ({perfil.n_productos})</h4>
+                    <ul className="space-y-1 text-sm">
+                      {perfil.productos.map((p) => (
+                        <li key={p.id} className="border-b border-border pb-1">
+                          <span className="font-medium">{p.titulo}</span>
+                          <span className="text-muted-foreground"> — {p.tipo} ({p.anio})</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {(!perfil.productos || perfil.productos.length === 0) && (
+                  <p className="text-sm text-muted-foreground">Este investigador no tiene productos registrados.</p>
+                )}
+              </>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
