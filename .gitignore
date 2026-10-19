@@ -1,0 +1,214 @@
+# ==========================================================================
+#  PEA-i Plataforma — .gitignore
+#  Nada de esto se versiona. Protege secretos, dependencias y artefactos.
+# ==========================================================================
+
+# --------------------------------------------------------------------------
+# 1. SECRETOS  (lo mas importante: nunca versionar)
+# --------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.env
+secrets/
+secrets.*
+*.secret
+*_secret.*
+*_secrets.*
+
+# Plantillas SI se versionan (deben quedar sin valores reales):
+!.env.example
+!.env.*.example
+
+# Claves y certificados
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.crt
+*.cer
+*.der
+id_rsa
+id_rsa.*
+id_dsa
+id_ecdsa
+id_ed25519
+*.ppk
+.pub
+known_hosts
+
+# --------------------------------------------------------------------------
+# 2. BASES DE DATOS  (pueden contener datos reales de investigadores)
+# --------------------------------------------------------------------------
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.db-journal
+*.db-wal
+*.db-shm
+peai.db
+backend/peai.db
+
+# Volcado de PostgreSQL
+*.sql
+!schema.sql
+!seed.sql
+!migrations/*.sql
+!*.example.sql
+
+# --------------------------------------------------------------------------
+# 3. DEPENDENCIAS
+# --------------------------------------------------------------------------
+# Node
+node_modules/
+jspm_packages/
+web_modules/
+.npm/
+.yarn/
+.yarn-integrity
+.pnp
+.pnp.js
+
+# Python
+venv/
+env/
+ENV/
+.venv/
+env.bak/
+venv.bak/
+__pypackages__/
+.pdm-python
+.pdm-build/
+
+# --------------------------------------------------------------------------
+# 4. CACHE Y COMPILACION
+# --------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Vite / React
+.vite/
+.cache/
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+
+# pytest / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+coverage/
+htmlcov/
+.tox/
+.nox/
+.nose2-surefire
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+
+# --------------------------------------------------------------------------
+# 5. FRONTEND — build
+# --------------------------------------------------------------------------
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/coverage/
+frontend/stats.html
+
+# --------------------------------------------------------------------------
+# 6. LOGS Y DEPURACION
+# --------------------------------------------------------------------------
+logs/
+*.log
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+pip-log.txt
+pip-delete-this-directory.txt
+
+# --------------------------------------------------------------------------
+# 7. BACKUP Y TEMPORALES
+# --------------------------------------------------------------------------
+*.bak
+*.backup
+*.tmp
+*.temp
+*.orig
+*.rej
+*~
+.#*
+\#*\#
+
+# --------------------------------------------------------------------------
+# 8. ENTORNOS DE DESARROLLO E IDIOMAS
+# --------------------------------------------------------------------------
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Sistema operativo
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# --------------------------------------------------------------------------
+# 9. EDITORES E IDE
+# --------------------------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+.idea/
+*.iml
+*.ipr
+*.iws
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.netbeans/
+nbproject/private/
+.settings/
+.project
+.classpath
+
+# --------------------------------------------------------------------------
+# 10. LOCALES
+# --------------------------------------------------------------------------
+*.nls
+*.mo

@@ -1,0 +1,36 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://peai:peai_secret@db:5432/peai
+      - SECRET_KEY=cambiar-en-produccion
+      - DEBUG=False
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/app
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: peai
+      POSTGRES_PASSWORD: peai_secret
+      POSTGRES_DB: peai
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
